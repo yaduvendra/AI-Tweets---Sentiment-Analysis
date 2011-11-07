@@ -1,0 +1,15 @@
+<div class="page-header">
+  <h2>Brand Page: <%= @brand.name %></h2>
+</div>
+
+<p>
+  Twitter Handle: <b>@<%= link_to @brand.twitter_handle, "http://twitter.com/#!/#{@brand.twitter_handle}", :target => '_blank' %></b>
+</p>
+
+<h3>Recent Tweets</h3>
+<ul id="recent_tweets" class="unstyled">
+</ul>
+
+<%= content_for :javascript_delay do %>
+  <%= "<script src=\"http://twitter.com/statuses/user_timeline/#{@brand.twitter_handle}.json?callback=BRAND.show.load_tweets\"></script>".html_safe %>
+<% end %>

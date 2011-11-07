@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+# hack to reload model
+ActiveRecord::Base
+
+tests = Brand.all.collect { |b| b.twitter_handle }
+# [
+#  'barrackobama',
+#  'ladygaga'
+#]
+
+tests.each do |n|
+  puts "queueing #{n}"
+  QueueMaster.fast_enqueue_fanout(QueueMaster::BRAND_EXCHANGE, n)
+end

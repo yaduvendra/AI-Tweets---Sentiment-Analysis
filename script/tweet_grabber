@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+
+# use: 
+#         rails runner script/tweet_grabber
+
+
+# tweet_grabber is a consumer of the tweet queue.
+# Consuming a message consists of calling the Twitter Stream API with the given twitter handle,
+# collecting all appropriate tweets, mentions, and retweets,
+# and saving them to the app database.
+
+# Once this job is complete, tweet_grabber becomes a publisher,
+# the corresponding brand will be marked in an 'analyzing' state,
+# and a message will be pushed onto the text_classifier queue for analytics
+
+# yes, this is a hack
+ActiveRecord::Base
+
+
+# items to prepend to the search term
+# assumes the twitter handle given does not start with '@'
+prefixes = ['to:', '@', '']
+
+#parameters to hand over to the search API
+search_options = {
+  :rpp => 100, # max results possible per page
+  :lang => 'en', # let's stick with english for now
+  :type => 'mixed'
+}
+
+connection_handler = Proc.new { |settings| puts "Failed to connect to broker"; EventMachine.stop }
+channel_exception_handler = Proc.new { |ch, channel_close| EventMachine.stop; raise "channel error: #{channel_close.reply_text}" }
+connection_settings = {
+  :host => QueueMaster.host,
+  :on_tcp_connection_failure => connection_handler,
+  :timeout => 1
+}
+
+# start the main event loop
+AMQP.start(connection_settings) do |connection|
+  puts 'Opening connection to broker'
+
+  # create our channel
+  channel = AMQP::Channel.new(connection, :auto_recovery => true)
+  channel.on_error(&channel_exception_handler)
+  # only process messages one-by-one
+  channel.prefetch(2)
+
+  channel.queue('tweet_grabber.queue', :durable => true, :auto_delete => false) do |queue|
+
+    puts 'subscribing to messages'
+    queue.bind(QueueMaster::BRAND_EXCHANGE).subscribe(:ack => true) do |metadata, payload|
+
+      # just because in the future payload will have more data
+      handle = payload
+
+      # there's a race condition when a record is inserted from the web app
+      #  and the message is added to the queue in the observer before it is really inserted
+      sleep(2)
+
+      puts "Incoming request for payload: #{payload}"
+
+      brand = Brand.by_twitter(handle)
+      if brand
+
+        puts "Request for brand: #{brand.name}"
+
+        # the terms to search for
+        query = prefixes.map { |p| "#{p}#{handle}" }.join(' OR ')
+
+        # where to put the tweets
+        tweets = []
+
+        max_id = 0
+
+        # call the twitter search API
+        (1..15).each do |page|
+          response = Twitter.search(query, search_options.merge({ :page => page, :since_id => brand.last_max_id.to_i }))
+          # in case we hit rate limit or no more pages of tweets
+          break unless response and response['results'] and response['results'].size > 0
+          tweets << response['results']
+          max_id = [max_id, response['max_id']].max
+          puts "request page #{page}. #{response['results'].size} results. Max Id: #{max_id}"
+        end
+
+        tweets.flatten!
+        if tweets.present?
+          tweets.each do |tweet|
+            puts tweet['text']
+          end
+
+          puts "#{tweets.size} collected"
+
+          # Intelligently update the tweets in the database
+          brand.update_tweets(tweets, max_id)
+
+          # TODO: publish to text_classifier queue
+          # TODO: decide where to best open the connection. Might as well be long-lived right?
+
+        end
+
+        # let the broker know we finished
+        metadata.ack
+
+      # didn't find a brand
+      else
+        puts 'No brand found'
+        # will tell the broker to discard the message completely
+        metadata.reject 
+      end
+
+      puts "Finished processing payload: #{payload}"
+    end
+  end
+end

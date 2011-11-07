@@ -1,0 +1,9 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/Fixtures.html
+
+one:
+  name: test1
+  twitter_handle: MyString
+
+two:
+  name: test2
+  twitter_handle: MyString2

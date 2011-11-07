@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/Fixtures.html
+
+one:
+  body: MyText
+  to_user_id: 1
+  from_user_id: 1
+  time: 2011-11-04 19:41:55
+  brand_id: 1
+
+two:
+  body: MyText
+  to_user_id: 1
+  from_user_id: 1
+  time: 2011-11-04 19:41:55
+  brand_id: 1
