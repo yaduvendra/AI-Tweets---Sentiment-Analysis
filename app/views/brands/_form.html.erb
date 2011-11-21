@@ -16,6 +16,22 @@
       </div>
     </div>
   </fieldset>
+  <div id="keyword_section">
+    <h3>Keywords <small>These will be treated as hashtags</small></h3>
+    <ul class="unstyled tags">
+      <%= f.fields_for :keywords do |keyword_form| %>
+      <li>
+        <%= keyword_form.text_field :value, :placeholder => 'New hashtag' %>
+        <% unless @brand.new_record? %>
+          <span>
+          <%= keyword_form.check_box :_destroy %>
+          Delete
+          </span>
+        <% end %> 
+      </li>
+      <% end %>
+    </ul>
+  </div>
 
   <div class="actions">
     <%= f.submit :class => 'btn primary' %>

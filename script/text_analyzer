@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+# use: 
+#         rails runner script/text_analyzer
+
+
+# text_analyzer is a consumer of the analysis queue.
+# Consuming a message consists of pulling all tweets from the database with the given twitter handle,
+# And calling the text_analyzer.py which wraps the python NLTK (natural language toolkit)
+
+# yes, this is a hack
+ActiveRecord::Base
+
+
+# where the script is running
+cwd = File.expand_path File.dirname(__FILE__)
+
+connection_handler = Proc.new { |settings| puts "Failed to connect to broker"; EventMachine.stop }
+channel_exception_handler = Proc.new { |ch, channel_close| EventMachine.stop; raise "channel error: #{channel_close.reply_text}" }
+connection_settings = {
+  :host => QueueMaster.host,
+  :on_tcp_connection_failure => connection_handler,
+  :timeout => 1
+}
+
+# start the main event loop
+AMQP.start(connection_settings) do |connection|
+  puts 'Opening connection to broker'
+
+  # create our channel
+  channel = AMQP::Channel.new(connection, :auto_recovery => true)
+  channel.on_error(&channel_exception_handler)
+  # only process messages one-by-one
+  channel.prefetch(2)
+
+  channel.queue('text_analyzer.queue', :durable => true, :auto_delete => false) do |queue|
+
+    puts 'subscribing to messages'
+    queue.bind(QueueMaster::ANALYSIS_EXCHANGE).subscribe(:ack => true) do |metadata, payload|
+
+      # just because in the future payload will have more data
+      handle = payload
+
+      puts "Incoming request for payload: #{payload}"
+
+      brand = Brand.by_twitter(handle)
+      if brand
+
+        puts "Request for brand: #{brand.name}"
+
+        # where to put the tweets
+        tweet_group = {}
+        brand.tweets.each do |t|
+          group = (t.time.to_f / 60.minutes).round * 60.minutes
+          (tweet_group[group] ||= []) << t
+        end
+
+        tweet_group.each do |group, tweets|
+          command = "python #{cwd}/text_analyzer.py #{tweets.collect { |tweet| "\"#{tweet.body.gsub(/[^A-Za-z\-\ ]/, '').gsub(/\-/, '\-').gsub(/\s+/, ' ')}\"" }.join(' ')}"
+          output = `#{command}`.chomp
+
+          begin
+            result = JSON.parse(output)
+            puts "Processing for #{handle}: #{tweets.size} tweets Sentiment: #{output} Average Sentiment/Tweet: #{result['score'].to_f / tweets.length}"
+          rescue
+          end
+        end
+
+        # let the broker know we finished
+        metadata.ack
+
+      # didn't find a brand
+      else
+        puts 'No brand found'
+        # will tell the broker to discard the message completely
+        metadata.reject 
+      end
+
+      puts "Finished processing payload: #{payload}"
+    end
+  end
+end

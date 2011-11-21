@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/Fixtures.html
+
+one:
+  brand_id: 1
+  timestamp: 1
+  num_tweets: 1
+  total_score: 9.99
+  num_positive: 1
+  num_negative: 1
+
+two:
+  brand_id: 1
+  timestamp: 1
+  num_tweets: 1
+  total_score: 9.99
+  num_positive: 1
+  num_negative: 1

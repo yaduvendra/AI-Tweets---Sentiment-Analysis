@@ -1,6 +1,8 @@
 class Brand < ActiveRecord::Base
 
   has_many :tweets
+  has_many :keywords
+  accepts_nested_attributes_for :keywords, :allow_destroy => true, :reject_if => proc { |attr| attr['value'].blank? }
 
   validates :name, :presence => { :message => 'Every brand needs a name' }
   validates :twitter_handle, :presence => { :message => 'Why are you here without a twitter handle?' },
@@ -15,7 +17,7 @@ class Brand < ActiveRecord::Base
     where(:twitter_handle => handle).first
   end
 
-  def update_tweets(new_tweets, max_id = 0)
+  def add_tweets(new_tweets, max_id = 0)
     self.update_attributes(:last_max_id => max_id, :state => Brand::STATE_ANALYZING)
 
     new_tweets.each do |t|

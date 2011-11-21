@@ -11,6 +11,7 @@ class BrandsController < ApplicationController
 
   def new
     @brand = Brand.new
+    @brand.keywords.build
   end
 
   def create
@@ -21,14 +22,16 @@ class BrandsController < ApplicationController
       response = { :status => 'error', :message => make_error(@brand) }
     end
 
+    puts response.inspect
     respond_to do |format|
-      format.html { redirect_to brands_path, flash[:notice] => response }
+      format.html { redirect_to brands_path, :flash => { :notice => response } }
       format.js { render :json => response }
     end
   end
 
   def edit
     @brand = Brand.find(params[:id])
+    @brand.keywords.build
   end
 
   def update
@@ -40,7 +43,7 @@ class BrandsController < ApplicationController
     end
 
     respond_to do |format|
-      format.html { redirect_to brands_path, flash[:notice] => response }
+      format.html { redirect_to brands_path, :flash => { :notice => response } }
       format.js { render :json => response }
     end
   end

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # use: 
-#         rails runner script/tweet_grabber
+#      rails runner script/tweet_grabber
 
 
 # tweet_grabber is a consumer of the tweet queue.
@@ -66,7 +66,7 @@ AMQP.start(connection_settings) do |connection|
         puts "Request for brand: #{brand.name}"
 
         # the terms to search for
-        query = prefixes.map { |p| "#{p}#{handle}" }.join(' OR ')
+        query = (prefixes.map { |p| "#{p}#{handle}" } | brand.keywords.map { |k| k.value }) .join(' OR ')
 
         # where to put the tweets
         tweets = []
@@ -85,18 +85,11 @@ AMQP.start(connection_settings) do |connection|
 
         tweets.flatten!
         if tweets.present?
-          tweets.each do |tweet|
-            puts tweet['text']
-          end
-
           puts "#{tweets.size} collected"
-
           # Intelligently update the tweets in the database
-          brand.update_tweets(tweets, max_id)
-
-          # TODO: publish to text_classifier queue
-          # TODO: decide where to best open the connection. Might as well be long-lived right?
-
+          brand.add_tweets(tweets, max_id)
+          # Publish to text_classifier queue
+          QueueMaster::fast_enqueue_fanout(QueueMaster::ANALYSIS_EXCHANGE, handle)
         end
 
         # let the broker know we finished

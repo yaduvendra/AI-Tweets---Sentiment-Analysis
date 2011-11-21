@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111107202747) do
+ActiveRecord::Schema.define(:version => 20111117065014) do
 
   create_table "brands", :force => true do |t|
     t.string   "name",                             :null => false
@@ -25,6 +25,14 @@ ActiveRecord::Schema.define(:version => 20111107202747) do
 
   add_index "brands", ["name"], :name => "index_brands_on_name"
   add_index "brands", ["twitter_handle"], :name => "index_brands_on_twitter_handle", :unique => true
+
+  create_table "keywords", :force => true do |t|
+    t.string   "value",                        :null => false
+    t.integer  "brand_id",                     :null => false
+    t.boolean  "active",     :default => true
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "tweets", :force => true do |t|
     t.text     "body"
