@@ -1,0 +1,81 @@
+<div class="page-header">
+  <h2>Sentiment Graph</h2>
+</div>
+
+<div id="sentiment_graph">
+</div>
+
+<% content_for :javascript_delay do %>
+<script>
+  var chart;
+  Highcharts.setOptions({
+    global: {
+      useUTC: false 
+    }
+  });
+  $(document).ready(function() {
+
+    chart = new Highcharts.Chart({
+      chart: {
+        renderTo: 'sentiment_graph',
+        zoomType: 'x',
+        type: 'spline'
+      },
+      title: {
+        text: 'Tweet Sentiments for <%= @brand.name.gsub(/'|"/, "\\\\'") %> over Time'
+      },
+      subtitle: {
+         text: 'Search Terms <%= ([@brand.twitter_handle] | @brand.keywords.collect{|k| k.value }).to_sentence %>'
+      },
+      xAxis: {
+        type: 'datetime',
+        maxZoom: 3600000,
+        dateTimeLabelFormats: {
+          hour: '%I:%M%p',
+          day: '%e. %b',
+          week: '%e. %b',
+          month: '%e. %b',
+          year: '%b'
+        }
+      },
+      yAxis: {
+        title: {
+          text: 'Tweet Sentiment (intensity)'
+        },
+        showFirstLabel: false
+      },
+      tooltip: {
+        formatter: function() {
+          return '<b>'+ this.series.name +': ' + this.y  + '</b><br/>' + Highcharts.dateFormat('%B %e %Y %I:%M%p', this.x);
+        }
+      },
+      series: [
+        {
+          name: 'Average Intensity',
+          data: [<%= @sentiments.collect{ |s| "[ #{s.timestamp * 1000}, #{( ((s.total_score.to_f / s.num_tweets) * 2000).floor) / 100.0 } ]" }.join(',') %>]
+        }
+      ],
+    plotOptions: {
+         area: {
+            lineWidth: 1,
+            marker: {
+               enabled: false,
+               states: {
+                  hover: {
+                     enabled: true,
+                     radius: 5
+                  }
+               }
+            },
+            shadow: false,
+            states: {
+               hover: {
+                  lineWidth: 1                  
+               }
+            }
+         }
+      }
+    });
+  });
+</script>
+<% end %>

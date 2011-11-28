@@ -12,6 +12,11 @@
 ActiveRecord::Base
 
 
+def preprocess_tweet(tweet)
+  tweet.gsub(/\bhttp:\/\/.+\..+(\/.+?)?\b/, '').gsub(/[^A-Za-z\-\ ]|RT/, '').gsub(/\-/, '\-').gsub(/\s+/, ' ')
+end
+
+
 # where the script is running
 cwd = File.expand_path File.dirname(__FILE__)
 
@@ -48,7 +53,7 @@ AMQP.start(connection_settings) do |connection|
 
         puts "Request for brand: #{brand.name}"
 
-        # where to put the tweets
+        # organize where to put the tweets
         tweet_group = {}
         brand.tweets.each do |t|
           group = (t.time.to_f / 60.minutes).round * 60.minutes
@@ -56,15 +61,41 @@ AMQP.start(connection_settings) do |connection|
         end
 
         tweet_group.each do |group, tweets|
-          command = "python #{cwd}/text_analyzer.py #{tweets.collect { |tweet| "\"#{tweet.body.gsub(/[^A-Za-z\-\ ]/, '').gsub(/\-/, '\-').gsub(/\s+/, ' ')}\"" }.join(' ')}"
+          command = "python #{cwd}/text_analyzer.py #{tweets.collect { |tweet| "\"#{preprocess_tweet(tweet.body)}\"" }.join(' ')}"
           output = `#{command}`.chomp
 
-          begin
+          begin # handles JSON parse exception
             result = JSON.parse(output)
             puts "Processing for #{handle}: #{tweets.size} tweets Sentiment: #{output} Average Sentiment/Tweet: #{result['score'].to_f / tweets.length}"
-          rescue
+            # sentiment rows are unique by brand, timestamp
+            @check = brand.sentiments.where({ timestamp: group }).first
+            if @check
+              # finished analyzing this batch
+              brand.remove_tweets(tweets) if @check.update_attributes({
+                                               num_tweets: tweets.size + @check.num_tweets,
+                                               normalized_total_score: result['normalized_score'].to_i + @check.normalized_total_score,
+                                               total_score: result['score'].to_i + @check.total_score,
+                                               num_positive: result['num_positive'] + @check.num_positive,
+                                               num_negative: result['num_negative'] + @check.num_negative })
+            else
+              # finished analyzing this batch
+              brand.remove_tweets(tweets) if brand.sentiments << Sentiment.new({
+                                                                   timestamp: group, 
+                                                                   num_tweets: tweets.size,
+	          	  		                           total_score: result['score'], 
+	          	  		                           normalized_total_score: result['normalized_score'], 
+	          			                           num_positive: result['num_positive'], 
+	          			                           num_negative: result['num_negative'] })
+            end
+          rescue Exception => e
+            puts e.message
+	    puts e.backtrace.inspect
+            puts "Failed to parse #{output}"
           end
         end
+
+        # it's over!
+        brand.finished_analyzing!
 
         # let the broker know we finished
         metadata.ack

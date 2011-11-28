@@ -1,0 +1,2 @@
+module SentimentGroupsHelper
+end

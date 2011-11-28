@@ -1,0 +1,30 @@
+<%= form_for @sentiment_group do |f| %>
+
+<fieldset>
+  <div class="clearfix">
+    <%= f.label :name %>
+    <div class="input">
+      <%= f.text_field :name %>
+    </div>
+  </div>
+<div class="clearfix">
+  <%= f.label :team_memberships, "Members" %>
+  <div class="input">
+    <%= select(:sentiment_group, :brand_ids, options_for_select(@brands.collect{ |b| [b.name, b.id ] }, 
+               @sentiment_group.brands.collect {|b| b.id}), {}, {:multiple => true, :size => 6, :id => 'brand_chooser', :title => 'Select Brands'}) %>
+  </div>
+</div>
+</fieldset>
+
+<div class="actions">
+  <%= f.submit 'Save', :class => 'btn primary' %>
+</div>
+<% end %>
+
+<% content_for :javascript_delay do %>
+<script>
+$(document).ready(function() {
+  $('#brand_chooser').asmSelect({highlight: true, animate: true});
+});
+</script>
+<% end %>

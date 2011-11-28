@@ -5,4 +5,10 @@
 // the compiled file.
 //
 //= require jquery
+//= require highcharts/highcharts.js
+//= require highcharts/themes/dark-blue.js
+//= require asmselect/jquery.asmselect.js
 //= require_tree .
+
+
+

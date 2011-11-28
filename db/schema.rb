@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111117065014) do
+ActiveRecord::Schema.define(:version => 20111121230048) do
 
   create_table "brands", :force => true do |t|
     t.string   "name",                             :null => false
@@ -33,6 +33,33 @@ ActiveRecord::Schema.define(:version => 20111117065014) do
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  create_table "sentiment_group_members", :force => true do |t|
+    t.integer  "brand_id",           :null => false
+    t.integer  "sentiment_group_id", :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "sentiment_groups", :force => true do |t|
+    t.string   "name",       :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "sentiments", :force => true do |t|
+    t.integer  "brand_id",                                                             :null => false
+    t.integer  "timestamp",                                                            :null => false
+    t.integer  "num_tweets",                                                           :null => false
+    t.decimal  "total_score",            :precision => 10, :scale => 0, :default => 0, :null => false
+    t.integer  "num_positive",                                          :default => 0, :null => false
+    t.integer  "num_negative",                                          :default => 0, :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.decimal  "normalized_total_score", :precision => 10, :scale => 0, :default => 0, :null => false
+  end
+
+  add_index "sentiments", ["brand_id", "timestamp"], :name => "index_sentiments_on_brand_id_and_timestamp", :unique => true
 
   create_table "tweets", :force => true do |t|
     t.text     "body"

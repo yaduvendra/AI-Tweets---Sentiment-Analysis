@@ -1,0 +1,11 @@
+<div class="page-header">
+  <h2>Sentiment Groups</h2>
+</div>
+
+<%= link_to 'New Group', new_sentiment_group_path, :class => 'btn' %>
+
+<ul class="unstyled">
+<% @sentiment_groups.each do |s| %>
+  <li><%= link_to s.name, s %></li>
+<% end %>
+</ul>

@@ -1,0 +1,85 @@
+<div class="page-header">
+  <h2>Sentiment Group <small>Comparing <%= @sentiment_group.brands.collect{|b| b.name }.to_sentence %></small></h2>
+  <div class="pull-right">
+    <%= link_to 'Edit', edit_sentiment_group_path(@sentiment_group), :class => 'btn' %>
+  </div>
+</div>
+
+<div id="sentiment_graph_target">
+</div>
+
+<% content_for :javascript_delay do %>
+<script>
+  var chart;
+  Highcharts.setOptions({
+    global: {
+      useUTC: false 
+    }
+  });
+  $(document).ready(function() {
+
+    chart = new Highcharts.Chart({
+      chart: {
+        renderTo: 'sentiment_graph_target',
+        zoomType: 'x',
+        type: 'spline'
+      },
+      title: {
+        text: 'Tweet Sentiments for <%= @sentiment_group.name %> over Time'
+      },
+      xAxis: {
+        type: 'datetime',
+        maxZoom: 3600000,
+        dateTimeLabelFormats: {
+          hour: '%I:%M%p',
+          day: '%e. %b',
+          week: '%e. %b',
+          month: '%e. %b',
+          year: '%b'
+        }
+      },
+      yAxis: {
+        title: {
+          text: 'Tweet Sentiment (intensity)'
+        },
+        showFirstLabel: false
+      },
+      tooltip: {
+        formatter: function() {
+          return '<b>'+ this.series.name +': ' + this.y  + '</b><br/>' + Highcharts.dateFormat('%B %e %Y %I:%M%p', this.x);
+        }
+      },
+      series: [
+        <%= @sentiment_group.brands.collect {|brand| 
+           "{
+              name: '#{brand.name}',
+              data: [ 
+                #{brand.sentiments.collect{ |s| "[#{s.timestamp * 1000},  #{((s.total_score.to_f / s.num_tweets) * 2000).floor / 100.0} ]" }.join(',') }
+              ]
+            }"
+          }.join(',') %>
+    ],
+    plotOptions: {
+         area: {
+            lineWidth: 1,
+            marker: {
+               enabled: false,
+               states: {
+                  hover: {
+                     enabled: true,
+                     radius: 5
+                  }
+               }
+            },
+            shadow: false,
+            states: {
+               hover: {
+                  lineWidth: 1                  
+               }
+            }
+         }
+      }
+    });
+  });
+</script>
+<% end %>

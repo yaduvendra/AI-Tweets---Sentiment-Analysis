@@ -66,7 +66,7 @@ AMQP.start(connection_settings) do |connection|
         puts "Request for brand: #{brand.name}"
 
         # the terms to search for
-        query = (prefixes.map { |p| "#{p}#{handle}" } | brand.keywords.map { |k| k.value }) .join(' OR ')
+        query = (prefixes.map { |p| "#{p}#{handle}" } | brand.keywords.map { |k| "##{k.value}" }) .join(' OR ')
 
         # where to put the tweets
         tweets = []
@@ -87,9 +87,11 @@ AMQP.start(connection_settings) do |connection|
         if tweets.present?
           puts "#{tweets.size} collected"
           # Intelligently update the tweets in the database
-          brand.add_tweets(tweets, max_id)
+          brand.add_tweets(tweets)
           # Publish to text_classifier queue
           QueueMaster::fast_enqueue_fanout(QueueMaster::ANALYSIS_EXCHANGE, handle)
+          #it's over!
+          brand.finished_processing!(max_id)
         end
 
         # let the broker know we finished
