@@ -29,8 +29,9 @@
       },
       xAxis: {
         type: 'datetime',
-        maxZoom: 3600000,
+        maxZoom: 36000000,
         dateTimeLabelFormats: {
+          minute: '%I:%M%p',
           hour: '%I:%M%p',
           day: '%e. %b',
           week: '%e. %b',
@@ -54,7 +55,7 @@
            "{
               name: '#{brand.name}',
               data: [ 
-                #{brand.sentiments.collect{ |s| "[#{s.timestamp * 1000},  #{((s.total_score.to_f / s.num_tweets) * 2000).floor / 100.0} ]" }.join(',') }
+                #{brand.sentiments.where("timestamp > #{(Time.now - 1.day).to_i}").collect{ |s| "[#{s.timestamp * 1000},  #{((s.normalized_total_score.to_f / s.num_tweets) * 2000).floor / 100.0} ]" }.join(',') }
               ]
             }"
           }.join(',') %>
