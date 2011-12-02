@@ -10,7 +10,7 @@
 #
 # To run every hour without using cron, run:
 # 
-#    > while [ 1 ]; do rails runner script/test_tweet_grabber; sleep 3615; done
+#    $ while [ 1 ]; do rails runner script/test_tweet_grabber; sleep 3615; done
 # 
 
 
