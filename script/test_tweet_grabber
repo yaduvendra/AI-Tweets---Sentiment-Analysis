@@ -1,15 +1,25 @@
 #!/usr/bin/env ruby
 
+# helper script to queue all brands into message queue for processing
+# 
+# Use: 
+#    rails runner script/test_tweet_grabber
+#
+# Run every hour to produce results over time. Text analyzer eventually aggregates
+# sentiments for each hour.
+#
+# To run every hour without using cron, run:
+# 
+#    > while [ 1 ]; do rails runner script/test_tweet_grabber; sleep 3615; done
+# 
+
+
 # hack to reload model
 ActiveRecord::Base
 
 tests = Brand.all.collect { |b| b.twitter_handle }
-# [
-#  'barrackobama',
-#  'ladygaga'
-#]
 
 tests.each do |n|
-  puts "queueing #{n}"
+  puts "[#{Time.now.getlocal}] queueing #{n}"
   QueueMaster.fast_enqueue_fanout(QueueMaster::BRAND_EXCHANGE, n)
 end
