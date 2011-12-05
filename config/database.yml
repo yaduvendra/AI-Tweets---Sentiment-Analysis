@@ -20,6 +20,7 @@ test:
 
 production:
   adapter: mysql2
+  username: ai_brands
   database: ai_brands_pro
   pool: 5
   timeout: 5000
