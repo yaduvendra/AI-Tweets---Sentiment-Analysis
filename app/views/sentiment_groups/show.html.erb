@@ -55,7 +55,7 @@
            "{
               name: '#{brand.name}',
               data: [ 
-                #{brand.sentiments.where("timestamp > #{(Time.now - 1.day).to_i}").collect{ |s| "[#{s.timestamp * 1000},  #{((s.normalized_total_score.to_f / s.num_tweets) * 2000).floor / 100.0} ]" }.join(',') }
+                #{brand.sentiments.where("timestamp > #{(Time.now - 1.day).to_i}").collect{ |s| "[#{s.timestamp * 1000},  #{(((s.num_positive - s.num_negative) / s.num_tweets.to_f) * 1000).floor / 100.0} ]" }.join(',') }
               ]
             }"
           }.join(',') %>
